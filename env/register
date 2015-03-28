@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e
+
+USERNAME=$1
+PASSWORD=$2
+
+REGISTER_RESPONSE=$(curl -XPOST -d "type=reseller&user[email]=$USERNAME&user[password]=$PASSWORD&user[confirm_password]=$PASSWORD" http://sols.local/api_web/action_signup 2>/dev/null)
+python -c 'import json; import sys;
+data = json.loads('"'""$REGISTER_RESPONSE""'"')
+if "user_info" in data and "user_id" in data["user_info"]:
+    print data["user_info"]["user_id"]
+else:
+    sys.exit(1)
+'

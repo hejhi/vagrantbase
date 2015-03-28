@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+set -e
+
+DIR=/var/www/env
+
+echo "-----> Updating apt-get"
+apt-get -y update
+apt-get install -y python-software-properties
+add-apt-repository ppa:ondrej/php5-oldstable -y
+
+echo "-----> Installing exim4"
+wget --quiet --no-check-certificate https://github.com/lowendbox/lowendscript/raw/master/setup-debian.sh
+bash setup-debian.sh exim4
+rm -f setup-debian.sh
+
+echo "-----> Installing Apache 2 and PHP 5"
+apt-get install -y apache2
+apt-get install -y php5
+apt-get install -y libapache2-mod-php5
+apt-get install -y php5-mysql php5-curl php5-gd php5-intl php-pear php5-imap php5-mcrypt php5-ming php5-ps php5-pspell php5-recode php5-tidy php5-xmlrpc php5-xsl php-apc
+
+echo "-----> Use mcrypt"
+sudo php5enmod mcrypt
+
+echo "-----> Install Git"
+apt-get install -y git
+
+echo "-----> Creating /var/vhosts/files"
+sudo mkdir -p /var/vhosts/files
+sudo chown www-data:www-data /var/vhosts/files
+
+echo "-----> Copying our php.ini"
+sudo cp $DIR/php.ini /etc/php5/apache2/php.ini
+
+rm -Rf /var/www/html
+
+echo "-----> Creating VirtualHost"
+VHOST=$(cat <<EOF
+<VirtualHost *:80>
+        ServerAdmin webmaster@localhost
+        ServerName $1.local
+        DocumentRoot /var/www
+        <Directory />
+                Options FollowSymLinks
+                AllowOverride None
+        </Directory>
+        <Directory /var/www>
+                Options Indexes FollowSymLinks MultiViews
+                AllowOverride All
+                Order allow,deny
+                allow from all
+        </Directory>
+</VirtualHost>
+EOF
+)
+echo "$VHOST" > /etc/apache2/sites-available/000-default.conf
+sudo a2ensite 000-default
+
+echo "-----> Saving config.yml"
+VCONFIG=$(cat <<EOF
+project: "$1"
+curr_project: "$1"
+EOF
+)
+
+echo "$VCONFIG" > /var/www/.tmp/config.yml
+
+echo "-----> Enable rewrite module"
+a2enmod rewrite
+
+echo "-----> Enable headers module"
+sudo a2enmod headers
+
+echo "-----> Restart Apache2"
+sudo service apache2 restart
+
+echo " "
+echo "=====> DONE!"
+echo "You can visit your site here at $1.local."
+echo "Happy Hacking!"
