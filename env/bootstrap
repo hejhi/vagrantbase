@@ -57,14 +57,17 @@ EOF
 echo "$VHOST" > /etc/apache2/sites-available/000-default.conf
 sudo a2ensite 000-default
 
-echo "-----> Saving config.yml"
+echo "-----> Creating .tmp and saving config.yml"
 VCONFIG=$(cat <<EOF
 project: "$1"
 curr_project: "$1"
 EOF
 )
 
-echo "$VCONFIG" > /var/www/.tmp/config.yml
+sudo mkdir -p /var/www/.tmp
+sudo chown www-data:www-data /var/www/.tmp
+
+echo "$VCONFIG" > "/var/www/.tmp/config.yml"
 
 echo "-----> Enable rewrite module"
 a2enmod rewrite
